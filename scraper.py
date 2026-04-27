@@ -20,14 +20,28 @@ def scrape_yellowpages():
         page = browser_context.pages[0]
         Stealth().apply_stealth_sync(page)
         
-        base_url = "https://yellowpages.com.eg/en/search/bakery-product-manufacturer/p"
+        # The script will now handle URLs where /p[number] is in the middle or at the end
+        # Example 1: https://yellowpages.com.eg/en/search/bakery-product-manufacturer/p1
+        # Example 2: https://yellowpages.com.eg/en/search/food-industries/p1?filters[categories]=...
+        target_url = "https://yellowpages.com.eg/en/search/food-industries/p1?filters[categories]=food-producers-and-equipment%2Cdairy-industry%2Ccandy-%26-confectionery%2Cbeverage-industry%2Fp"
+        
         all_results = []
         page_num = 1
         max_pages = 1
         
         while page_num <= max_pages:
-            url = f"{base_url}{page_num}"
+            # Dynamically replace the first /p[digit] with the current page number
+            if re.search(r'/p\d+', target_url):
+                url = re.sub(r'/p\d+', f'/p{page_num}', target_url, count=1)
+            elif "/p" in target_url:
+                # If it's just /p without a number, replace the first /p
+                url = target_url.replace("/p", f"/p{page_num}", 1)
+            else:
+                # Fallback
+                url = f"{target_url}/p{page_num}"
+
             print(f"\n--- Scraping Page {page_num} of {max_pages if max_pages > 1 else '?'} ---")
+            print(f"URL: {url}")
             
             try:
                 page.goto(url, wait_until="domcontentloaded", timeout=60000)
